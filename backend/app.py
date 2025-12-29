@@ -5,6 +5,8 @@ import jwt
 import datetime
 import pyodbc
 import os
+import smtplib
+from email.message import EmailMessage
 
 # ================= APP SETUP =================
 app = Flask(__name__)
@@ -295,6 +297,86 @@ def delete_inventory_item(id):
     conn.close()
 
     return jsonify({"message": "Item deleted"})
+
+
+
+
+EMAIL_ADDRESS = "thapamunal710@gmail.com"       # Your Gmail address
+EMAIL_PASSWORD = "pjxipjpzkaldypys"             # Your Gmail App Password
+
+# ================== SEND EMAIL ROUTE ==================
+@app.route("/send-email", methods=["POST"])
+def send_email():
+    data = request.json
+    employee_name = data.get("employeeName")
+    employee_email = data.get("employeeEmail")
+    task_title = data.get("taskTitle")
+    due_date = data.get("dueDate")
+
+    if not all([employee_name, employee_email, task_title, due_date]):
+        return jsonify({"message": "Missing data"}), 400
+
+    try:
+        # Compose email
+        msg = EmailMessage()
+        msg['Subject'] = f"New Task Assigned: {task_title}"
+        msg['From'] = EMAIL_ADDRESS
+        msg['To'] = employee_email
+        msg.set_content(f"""
+Hello {employee_name},
+
+You have been assigned a new task: {task_title}.
+Due Date: {due_date}
+
+Regards,
+Admin Team
+""")
+
+        # Connect to Gmail SMTP and send
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.send_message(msg)
+
+        return jsonify({"message": f"Email sent to {employee_name}"}), 200
+
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
+
+
+@app.route("/tasks", methods=["POST"])
+def add_task():
+    data = request.json
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO Tasks (Title, EmployeeId, DueDate) OUTPUT INSERTED.Id VALUES (?, ?, ?)",
+        (data["title"], data["employeeId"], data["dueDate"])
+    )
+    new_id = cursor.fetchone()[0]
+    conn.commit()
+    conn.close()
+    return jsonify({"id": new_id, **data}), 201
+
+@app.route("/tasks", methods=["GET"])
+def get_tasks():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT Id, Title, EmployeeId, DueDate, EmailSent FROM Tasks")
+    rows = cursor.fetchall()
+    conn.close()
+    return jsonify([
+        {"id": r.Id, "title": r.Title, "employeeId": r.EmployeeId, "dueDate": r.DueDate.strftime("%Y-%m-%d"), "emailSent": r.EmailSent}
+        for r in rows
+    ])
+
+@app.route("/tasks/<int:id>/email-sent", methods=["PATCH"])
+def mark_email_sent(id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE Tasks SET EmailSent=1 WHERE Id=?", (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Email marked as sent"})
 
 
 # ================= RUN =================
