@@ -3,33 +3,29 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import datetime
-# import pyodbc
-import psycopg2
+import pyodbc
 import os
 import smtplib
 from email.message import EmailMessage
 
 # ================= APP SETUP =================
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": "*"}})
+SECRET_KEY = "your_super_secret_key"
 
 # ================= DATABASE CONFIG =================
-# conn_str = (
-#     r'DRIVER={ODBC Driver 17 for SQL Server};'
-#     r'SERVER=localhost\SQLEXPRESS;'
-#     r'DATABASE=VivaTMS;'
-#     r'Trusted_Connection=yes;'
-# )
+conn_str = (
+    r'DRIVER={ODBC Driver 17 for SQL Server};'
+    r'SERVER=localhost\SQLEXPRESS;'
+    r'DATABASE=VivaTMS;'
+    r'Trusted_Connection=yes;'
+)
 
 def get_db_connection():
-    return psycopg2.connect(os.getenv("DATABASE_URL"))
-
-
-# def get_db_connection():
-#     return pyodbc.connect(conn_str)
+    return pyodbc.connect(conn_str)
 
 # ================= UPLOAD CONFIG =================
-UPLOAD_FOLDER = "/tmp/uploads"
+UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
@@ -104,8 +100,7 @@ def login():
 
     photo_url = None
     if user_row.photo:
-        BASE_URL = os.getenv("BASE_URL", "http://localhost:5000")
-        photo_url = f"{BASE_URL}/uploads/{os.path.basename(user_row.photo)}"
+        photo_url = f"http://localhost:5000/uploads/{os.path.basename(user_row.photo)}"
 
     return jsonify({
         "token": token,
@@ -305,12 +300,9 @@ def delete_inventory_item(id):
 
 
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
-# EMAIL_ADDRESS = "thapamunal710@gmail.com"       # Your Gmail address
-# EMAIL_PASSWORD = "pjxipjpzkaldypys"             # Your Gmail App Password
+EMAIL_ADDRESS = "thapamunal710@gmail.com"       # Your Gmail address
+EMAIL_PASSWORD = "pjxipjpzkaldypys"             # Your Gmail App Password
 
 # ================== SEND EMAIL ROUTE ==================
 @app.route("/send-email", methods=["POST"])
@@ -387,40 +379,6 @@ def mark_email_sent(id):
     return jsonify({"message": "Email marked as sent"})
 
 
-@app.route("/tasks/<int:id>", methods=["PUT"])
-def update_task(id):
-    data = request.json
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "UPDATE Tasks SET Title=?, EmployeeId=?, DueDate=? WHERE Id=?",
-        (data["title"], data["employeeId"], data["dueDate"], id)
-    )
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Task updated successfully"})
-
-@app.route("/tasks/<int:id>", methods=["DELETE"])
-def delete_task(id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("DELETE FROM Tasks WHERE Id = ?", (id,))
-        conn.commit()
-
-        if cursor.rowcount == 0:
-            return jsonify({"message": "Task not found"}), 404
-
-        conn.close()
-        return jsonify({"message": "Task deleted successfully"}), 200
-
-    except Exception as e:
-        return jsonify({"message": str(e)}), 500
-
-
-
 # ================= RUN =================
-#if __name__ == "__main__":
-    # app.run(debug=True, host="0.0.0.0", port=5000)
-
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5000)
