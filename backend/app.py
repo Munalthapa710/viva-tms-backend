@@ -202,7 +202,6 @@ def add_inventory_group():
     return jsonify({"id": group_id, "name": data["name"]}), 201
 
 
-# ✅ UPDATE GROUP
 @app.route("/inventory/groups/<int:id>", methods=["PUT"])
 def update_inventory_group(id):
     data = request.json
