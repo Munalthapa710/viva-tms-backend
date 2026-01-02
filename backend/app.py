@@ -377,6 +377,31 @@ def mark_email_sent(id):
     conn.close()
     return jsonify({"message": "Email marked as sent"})
 
+# ================= TASK DELETE =================
+@app.route("/tasks/<int:id>", methods=["DELETE"])
+def delete_task(id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Delete the task
+    cursor.execute("DELETE FROM Tasks WHERE Id=?", (id,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Task deleted successfully"}), 200
+
+@app.route("/tasks/<int:id>", methods=["PUT"])
+def update_task(id):
+    data = request.json
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE Tasks SET Title=?, EmployeeId=?, DueDate=? WHERE Id=?",
+        (data["title"], data["employeeId"], data["dueDate"], id)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Task updated successfully"}), 200
 
 # ================= RUN =================
 if __name__ == "__main__":
