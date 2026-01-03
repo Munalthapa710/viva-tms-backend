@@ -403,6 +403,86 @@ def update_task(id):
     conn.close()
     return jsonify({"message": "Task updated successfully"}), 200
 
+@app.route("/worktodo", methods=["POST"])
+def add_work_todo():
+    data = request.json
+
+    title = data.get("title")
+    priority = data.get("priority")
+    deadline = data.get("deadline")
+
+    if not all([title, priority, deadline]):
+        return jsonify({"message": "All fields are required"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "INSERT INTO WorkTodo (Title, Priority, Deadline) OUTPUT INSERTED.Id VALUES (?, ?, ?)",
+        (title, priority, deadline)
+    )
+
+    new_id = cursor.fetchone()[0]
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        "id": new_id,
+        "title": title,
+        "priority": priority,
+        "deadline": deadline
+    }), 201
+
+@app.route("/worktodo", methods=["GET"])
+def get_work_todos():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT Id, Title, Priority, Deadline FROM WorkTodo ORDER BY CreatedAt DESC"
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return jsonify([
+        {
+            "id": r.Id,
+            "title": r.Title,
+            "priority": r.Priority,
+            "deadline": r.Deadline.strftime("%Y-%m-%d")
+        }
+        for r in rows
+    ])
+
+@app.route("/worktodo/<int:id>", methods=["PUT"])
+def update_work_todo(id):
+    data = request.json
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE WorkTodo SET Title=?, Priority=?, Deadline=? WHERE Id=?",
+        (data["title"], data["priority"], data["deadline"], id)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Work todo updated successfully"})
+
+@app.route("/worktodo/<int:id>", methods=["DELETE"])
+def delete_work_todo(id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM WorkTodo WHERE Id=?", (id,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Work todo deleted successfully"})
+
 # ================= RUN =================
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
