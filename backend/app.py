@@ -8,12 +8,12 @@ import os
 import smtplib
 from email.message import EmailMessage
 
-# ================= APP SETUP =================
+#  APP SETUP 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 SECRET_KEY = "your_super_secret_key"
 
-# ================= DATABASE CONFIG =================
+#  DATABASE CONFIG 
 conn_str = (
     r'DRIVER={ODBC Driver 17 for SQL Server};'
     r'SERVER=localhost\SQLEXPRESS;'
@@ -24,17 +24,17 @@ conn_str = (
 def get_db_connection():
     return pyodbc.connect(conn_str)
 
-# ================= UPLOAD CONFIG =================
+#  UPLOAD CONFIG 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-# ================= SERVE UPLOADED FILES =================
+#  SERVE UPLOADED FILES 
 @app.route("/uploads/<filename>")
 def uploaded_file(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
-# ================= AUTH ROUTES =================
+#  AUTH ROUTES 
 @app.route("/register", methods=["POST"])
 def register():
     username = request.form.get("username")
@@ -109,7 +109,7 @@ def login():
     }), 200
 
 
-# ================= EMPLOYEES =================
+#  EMPLOYEES 
 @app.route('/employees', methods=['GET'])
 def get_employees():
     conn = get_db_connection()
@@ -170,7 +170,7 @@ def delete_employee(id):
     return jsonify({"message": "Employee deleted"})
 
 
-# ================= INVENTORY =================
+#  INVENTORY 
 
 @app.route("/inventory/groups", methods=["GET"])
 def get_inventory_groups():
@@ -303,7 +303,7 @@ def delete_inventory_item(id):
 EMAIL_ADDRESS = "thapamunal710@gmail.com"       # Your Gmail address
 EMAIL_PASSWORD = "pjxipjpzkaldypys"             # Your Gmail App Password
 
-# ================== SEND EMAIL ROUTE ==================
+# = SEND EMAIL ROUTE =
 @app.route("/send-email", methods=["POST"])
 def send_email():
     data = request.json
@@ -377,7 +377,7 @@ def mark_email_sent(id):
     conn.close()
     return jsonify({"message": "Email marked as sent"})
 
-# ================= TASK DELETE =================
+#  TASK DELETE 
 @app.route("/tasks/<int:id>", methods=["DELETE"])
 def delete_task(id):
     conn = get_db_connection()
@@ -484,6 +484,6 @@ def delete_work_todo(id):
     return jsonify({"message": "Work todo deleted successfully"})
 
 
-# ================= RUN =================
+#  RUN 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
